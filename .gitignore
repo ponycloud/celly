@@ -1,0 +1,8 @@
+*.py[co]
+.idea
+/build/
+/dist/
+/*.egg*/
+*~
+*.html
+*.png
