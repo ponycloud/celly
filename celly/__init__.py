@@ -141,7 +141,7 @@ class Celly(object):
         if status.get('content-type') == 'application/json':
             data = loads(data)
 
-        if int(status['status']) in (200, 202):
+        if int(status['status']) == 200:
             return data
 
         raise RequestError.from_response(status, data)
