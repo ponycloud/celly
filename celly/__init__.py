@@ -1,8 +1,8 @@
 #!/usr/bin/python -tt
 # -*- coding: utf-8 -*-
 
-__all__ = ['Celly', 'RequestError', 'NotFoundError', 'MethodNotAllowedError',
-           'BadRequestError']
+__all__ = ['Celly', 'UserError', 'DataError', 'AccessError', 'PathError',
+           'ConflictError', 'RequestError', 'MethodError', 'PatchError']
 
 from httplib2 import Http
 from urllib import quote
@@ -12,6 +12,14 @@ from simplejson import loads, dumps
 import re
 
 class RequestError(Exception):
+    def __init__(self, message, **kw):
+        super(RequestError, self).__init__(message)
+
+        self._data = kw
+        for k, v in kw.iteritems():
+            if not k.startswith('_'):
+                setattr(self, k, v)
+
     @classmethod
     def from_response(cls, status, data):
         code = int(status['status'])
@@ -20,27 +28,54 @@ class RequestError(Exception):
             data = {}
 
         if code == 400:
-            return BadRequestError(data.get('message', 'bad request'))
+            if 'invalid-data' == data['error']:
+                return DataError(code=code, **data)
+            if 'invalid-patch' == data['error']:
+                return PatchError(code=code, **data)
+            return UserError(code=code, **data)
+
+        if code == 403:
+            return AccessError(code=code, **data)
 
         if code == 404:
-            return NotFoundError(data.get('message', 'not found'))
+            return PathError(code=code, **data)
 
         if code == 405:
-            return MethodNotAllowedError(data.get('message', 'method not allowed'))
+            return MethodError(code=code, message='method not allowed')
 
-        exn = cls(data.get('message', 'request failed'))
-        exn.code = code
-        return exn
+        if code == 409:
+            return ConflictError(code=code, **data)
 
-class BadRequestError(RequestError):
-    code = 400
+        if 'message' in data:
+            return cls(code=code, **data)
+        return cls(code=code, message='request failed')
 
-class NotFoundError(RequestError):
-    code = 404
+    def __str__(self):
+        lines = [self.message, '  Info:']
+        for k, v in sorted(self._data.items()):
+            lines.append('    %s: %r' % (k, v))
+        return '\n'.join(lines) + '\n'
 
-class MethodNotAllowedError(RequestError):
-    code = 405
+class MethodError(RequestError):
+    pass
 
+class UserError(RequestError):
+    pass
+
+class AccessError(RequestError):
+    pass
+
+class DataError(RequestError):
+    pass
+
+class ConflictError(DataError):
+    pass
+
+class PathError(DataError):
+    pass
+
+class PatchError(DataError):
+    pass
 
 class CollectionProxy(object):
     """Remote collection proxy."""
@@ -115,9 +150,7 @@ class EntityProxy(object):
 
 
 class Celly(object):
-    """
-    Ponycloud RESTful API client.
-    """
+    """Ponycloud RESTful API client."""
 
     def __init__(self, base_uri='http://127.0.0.1:9860/v1', headers={}):
         """Queries the API schema and constructs client accordingly."""
