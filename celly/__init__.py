@@ -114,6 +114,9 @@ class CollectionProxy(object):
     def patch(self, ops):
         return self.celly.request(self.uri, 'PATCH', dumps(ops))
 
+    def merge(self, value):
+        return self.patch([{'op': 'x-merge', 'path': '/', 'value': value}])
+
     def __repr__(self):
         return '<CollectionProxy %s>' % self.uri
 
@@ -144,6 +147,9 @@ class EntityProxy(object):
 
     def patch(self, ops):
         return self.celly.request(self.uri, 'PATCH', dumps(ops))
+
+    def merge(self, value):
+        return self.patch([{'op': 'x-merge', 'path': '/', 'value': value}])
 
     def __repr__(self):
         return '<EntityProxy %s>' % self.uri
