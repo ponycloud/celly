@@ -88,6 +88,9 @@ class CollectionProxy(object):
     def __iter__(self):
         return iter(self.list)
 
+    def __len__(self):
+        return len(self.list)
+
     def __getitem__(self, key):
         if isinstance(key, int):
             return self.list[key]
