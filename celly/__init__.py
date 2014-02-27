@@ -161,12 +161,26 @@ class EntityProxy(object):
 class Celly(object):
     """Ponycloud RESTful API client."""
 
-    def __init__(self, base_uri='http://127.0.0.1:9860/v1', headers={}):
-        """Queries the API schema and constructs client accordingly."""
+    def __init__(self, base_uri='http://127.0.0.1:9860/v1', auth=None):
+        """
+        Queries the API schema and constructs client accordingly.
+
+        :param base_uri:  Address of the Sparkle API.
+        :param auth:      Optional authentication data.
+                          Either a string with bearer token to be used
+                          directly or a tuple with user name and password
+                          for basic authentication.
+        """
 
         self.uri = base_uri
         self.http = Http()
-        self.headers = headers
+        self.headers = {}
+
+        if isinstance(auth, basestring):
+            self.headers['Authorization'] = 'Token ' + auth
+        else:
+            base64 = ':'.join(auth).encode('base64')
+            self.headers['Authorization'] = 'Basic ' + base64
 
         for name, child in self.schema['children'].iteritems():
             uri = '%s/%s/' % (base_uri, quote(name, ''))
